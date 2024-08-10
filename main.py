@@ -8,9 +8,7 @@ from datetime import datetime
 
 import json_structs
 import ui_helper
-import unit_test
 import web_utils
-
 from config import *
 
 

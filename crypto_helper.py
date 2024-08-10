@@ -1,6 +1,7 @@
+import base64
+
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
-import base64
 
 # Consider setting a breakpoint @ webpack:///src/store/index.js line 136 & 152 and run step by step.
 from config import *
