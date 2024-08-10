@@ -108,6 +108,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    unit_test.test()
-    web_utils.fetch_tenant_conf(str(71000012))
     asyncio.run(main())

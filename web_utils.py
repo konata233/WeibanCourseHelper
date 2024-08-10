@@ -140,7 +140,7 @@ def fetch_login_captcha() -> (requests.Response, int):
     current_time = time.time()
     return get(
         request_str_arg_builder(api_mapping[api.GET_LOGIN_CAPTCHA])
-        .concat("time", str(round(current_time * 1000) / 1000))
+        .concat("time", str(round(current_time * 1000)))
         .fetch(),
     ), current_time
 
@@ -207,7 +207,8 @@ async def login(tenant: str, uname: str, pwd: str, captcha: str, captcha_ts: flo
         }
     )
 
-    if j := json.loads(resp.text)["code"] == "0":
+    j = json.loads(resp.text)
+    if j["code"] == "0":
         data = j["data"]
         return json_structs.User(
             data["realName"],
