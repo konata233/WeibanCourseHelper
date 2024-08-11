@@ -20,7 +20,14 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 headers = {
     "X-Token": "",
     "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 "
+                  "Safari/537.36 Edg/127.0.0.0 "
+}
+
+# To prevent potential errors raised by proxy configuration.
+proxies = {
+    "http": None,
+    "https": None
 }
 
 
@@ -84,8 +91,8 @@ class api:
 
 
 api_mapping: dict = {
-    api.GET_LOGIN_CAPTCHA: "http://weiban.mycourse.cn/pharos/login/randLetterImage.do",
-    api.GET_TENANT_LIST: "http://weiban.mycourse.cn/pharos/login/getTenantList.do",
+    api.GET_LOGIN_CAPTCHA: "https://weiban.mycourse.cn/pharos/login/randLetterImage.do",
+    api.GET_TENANT_LIST: "https://weiban.mycourse.cn/pharos/login/getTenantList.do",
     api.GET_TENANT_CONF: "https://weiban.mycourse.cn/pharos/login/getTenantConfig.do",
     api.LOGIN: "https://weiban.mycourse.cn/pharos/login/login.do",
     api.FETCH_PROJECT_LIST: "https://weiban.mycourse.cn/pharos/index/listMyProject.do",
@@ -94,7 +101,7 @@ api_mapping: dict = {
 
     api.STUDY_START: "https://weiban.mycourse.cn/pharos/usercourse/study.do",
     api.STUDY_GET_COURSE_URL: "https://weiban.mycourse.cn/pharos/usercourse/getCourseUrl.do",
-    api.STUDY_FETCH_CAPTCHA: "http://weiban.mycourse.cn/pharos/usercourse/getCaptcha.do",
+    api.STUDY_FETCH_CAPTCHA: "https://weiban.mycourse.cn/pharos/usercourse/getCaptcha.do",
     api.STUDY_CHECK_CAPTCHA: "https://weiban.mycourse.cn/pharos/usercourse/checkCaptcha.do",
     api.STUDY_TERMINATE: "https://weiban.mycourse.cn/pharos/usercourse/v2/<replace>.do"
 }
@@ -115,11 +122,11 @@ def post(url, data: dict, cookies: object = None) -> requests.Response:
     if cookies is None:
         cookies = {}
     resp: requests.Response = requests.post(url, data=data, headers=headers, cookies=cookies,
-                                            timeout=5, verify=False)
+                                            timeout=5, verify=False, proxies=proxies)
     if len(t := resp.text) < DEBUG_PRINT_MAX_LEN:
-        dbg_print(t)
+        dbg_print("Response: " + t)
     else:
-        dbg_print(t[0:65536])
+        dbg_print("Response: " + t[0:65536])
     return resp
 
 
@@ -128,11 +135,11 @@ def get(url, cookies=None) -> requests.Response:
     if cookies is None:
         cookies = {}
     resp: requests.Response = requests.get(url, headers=headers, cookies=cookies,
-                                           timeout=5, verify=False)
+                                           timeout=5, verify=False, proxies=proxies)
     if len(t := resp.text) < DEBUG_PRINT_MAX_LEN:
-        dbg_print(t)
+        dbg_print("Response: " + t)
     else:
-        dbg_print(t[0:65536])
+        dbg_print("Response: " + t[0:65536])
     return resp
 
 
@@ -512,17 +519,15 @@ async def learn_course(tenant, user_id, user_project_id, user_course_id, course_
     await study_start(tenant, user_id, user_project_id, course_id)
     await study_get_course_url(tenant, user_id, user_project_id, course_id)
 
-    # await asyncio.sleep(random.randint(15, 20))
-    """ 
-    captcha_token = await captcha_crack(tenant, user_id, user_project_id, user_course_id, MY_CAPTCHA,
-                                        answer=json_structs.CaptchaAnswer(
-                                            json_structs.Position(192, 420),
-                                            json_structs.Position(61, 416),
-                                            json_structs.Position(120, 425)
-                                        ))
-    """
-    await asyncio.sleep(random.randint(16, 18))  # what can I say
+    print("Start learning course", course_name, "with id", course_id,
+          ". Please stand by...")
+    # PS: this timeout is necessary. Otherwise, the request would be rejected.
+    # Do not remove it in further updates.
+    # Try to minimize the waiting time by sending requests continuously until no request would be rejected.
+    await asyncio.sleep(LEARN_TIMEOUT)  # what can I say
+    print("Fetching CAPTCHA of course", course_name, "with id", course_id, ". Starting coroutine...")
     captcha: json_structs.Captcha = await study_fetch_captcha(tenant, user_id, user_project_id, user_course_id)
+    print("Verifying CAPTCHA of course", course_name, "with id", course_id, ". Starting coroutine...")
     success, captcha_token = await study_verify_captcha(tenant, user_id, user_project_id, user_course_id,
                                                         captcha.question_id,
                                                         answer=json_structs.CaptchaAnswer(

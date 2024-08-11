@@ -3,9 +3,12 @@
 # Do not distribute!
 
 import asyncio
+import functools
 import sys
+import time
 from datetime import datetime
 
+import config
 import json_structs
 import ui_helper
 import web_utils
@@ -72,15 +75,25 @@ async def main():
     projects: list[json_structs.Project] = await web_utils.fetch_project_list(session.tenant_code, session.user_id)
 
     for p in projects:
+        start = time.time()
+
         courses: list[json_structs.Course] = list()
         print("Ongoing project:", p.project_name, "ID:", p.project_id, "User Project ID:", p.user_project_id)
         categories: list[json_structs.Category] = \
             await web_utils.fetch_category_list(session.tenant_code, session.user_id, p.user_project_id)
+
+        task_courses: list = list()
         for c in categories:
             print("Ongoing category:", c.category_name, "ID:", c.category_code)
             if (not c.finished) or (not IGNORE_FINISHED_TASKS):
-                courses += await web_utils.fetch_course_list(session.tenant_code, session.user_id,
-                                                             p.user_project_id, c.category_code)
+                task_courses.append(
+                    asyncio.create_task(
+                        web_utils.fetch_course_list(session.tenant_code, session.user_id,
+                                                    p.user_project_id, c.category_code)
+                    )
+                )
+        print("Starting to fetch ongoing courses asynchronously...")
+        courses = functools.reduce(lambda x, y: x + y, await asyncio.gather(*task_courses))
         print("Detected", len(courses), "courses to be finished.")
         tasks: list = list()
 
@@ -98,12 +111,23 @@ async def main():
             if cnt >= MAX_TASK_NUM:
                 break
 
-        print("Gathered", len(tasks), "tasks in total. Starting coroutines...")
-        await asyncio.gather(*tasks)
-        print("Project", p.project_name, "successfully terminated.")
+        print("Gathered", total_cnt := len(tasks), "tasks in total. Starting coroutines...")
+        result = await asyncio.gather(*tasks)
+
+        end = time.time()
+
+        success_cnt = 0
+        for r in result:
+            if r:
+                success_cnt += 1
+
+        time_elapsed = end - start
+        print("Succeeded tasks:", success_cnt, "of", total_cnt, end=".\n")
+        print("Ongoing task of Project", p.project_name, "successfully terminated in", time_elapsed, "secs.")
 
     print("All ongoing tasks successfully terminated.")
 
 
 if __name__ == "__main__":
+    config.parse_conf()
     asyncio.run(main())
