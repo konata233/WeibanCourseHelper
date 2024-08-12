@@ -32,9 +32,9 @@ proxies = {
 
 
 def dbg_print(msg: str):
-    if DEBUG:
+    if instance.DEBUG:
         now: datetime = datetime.now()
-        print(f"[DBG] [{now}] {msg}")
+        print(f"[DEBUG] [{now}] {msg}")
 
 
 class request_str_arg_builder:
@@ -123,7 +123,7 @@ def post(url, data: dict, cookies: object = None) -> requests.Response:
         cookies = {}
     resp: requests.Response = requests.post(url, data=data, headers=headers, cookies=cookies,
                                             timeout=5, verify=False, proxies=proxies)
-    if len(t := resp.text) < DEBUG_PRINT_MAX_LEN:
+    if len(t := resp.text) < instance.DEBUG_PRINT_MAX_LEN:
         dbg_print("Response: " + t)
     else:
         dbg_print("Response: " + t[0:65536])
@@ -136,7 +136,7 @@ def get(url, cookies=None) -> requests.Response:
         cookies = {}
     resp: requests.Response = requests.get(url, headers=headers, cookies=cookies,
                                            timeout=5, verify=False, proxies=proxies)
-    if len(t := resp.text) < DEBUG_PRINT_MAX_LEN:
+    if len(t := resp.text) < instance.DEBUG_PRINT_MAX_LEN:
         dbg_print("Response: " + t)
     else:
         dbg_print("Response: " + t[0:65536])
@@ -203,14 +203,17 @@ async def login(tenant: str, uname: str, pwd: str, captcha: str, captcha_ts: flo
         .concat_ts()
         .fetch(),
         data={
-            "data": crypto_helper.encrypt(json.dumps(
-                {
-                    "keyNumber": uname,
-                    "password": pwd,
-                    "tenantCode": tenant,
-                    "time": captcha_ts,
-                    "verifyCode": captcha
-                }).replace(" ", ""))
+            "data": crypto_helper.encrypt(
+                json.dumps(
+                    {
+                        "keyNumber": uname,
+                        "password": pwd,
+                        "tenantCode": tenant,
+                        "time": captcha_ts,
+                        "verifyCode": captcha
+                    }
+                ).replace(" ", "")
+            )
         }
     )
 
@@ -252,11 +255,15 @@ async def fetch_project_list(tenant: str, user_id: str, ended=2):
     data = json.loads(resp.text)["data"]
     ret: list = list()
     for d in data:
-        ret.append(deepcopy(json_structs.Project(
-            project_id=d["projectId"],
-            project_name=d["projectName"],
-            user_project_id=d["userProjectId"]
-        )))
+        ret.append(
+            deepcopy(
+                json_structs.Project(
+                    project_id=d["projectId"],
+                    project_name=d["projectName"],
+                    user_project_id=d["userProjectId"]
+                )
+            )
+        )
     return deepcopy(ret)
 
 
@@ -277,12 +284,16 @@ async def fetch_category_list(tenant, user_id, user_project_id, choose_type=3):
 
     ret: list = list()
     for d in data:
-        ret.append(deepcopy(json_structs.Category(
-            d["categoryName"],
-            d["categoryCode"],
-            d["finishedNum"],
-            d["totalNum"]
-        )))
+        ret.append(
+            deepcopy(
+                json_structs.Category(
+                    d["categoryName"],
+                    d["categoryCode"],
+                    d["finishedNum"],
+                    d["totalNum"]
+                )
+            )
+        )
     return deepcopy(ret)
 
 
@@ -303,11 +314,15 @@ async def fetch_course_list(tenant, user_id, user_project_id, category_code, cho
     ret: list = list()
     data = json.loads(resp.text)["data"]
     for d in data:
-        ret.append(deepcopy(json_structs.Course(
-            resource_id=d["resourceId"],
-            resource_name=d["resourceName"],
-            user_course_id=d["userCourseId"]
-        )))
+        ret.append(
+            deepcopy(
+                json_structs.Course(
+                    resource_id=d["resourceId"],
+                    resource_name=d["resourceName"],
+                    user_course_id=d["userCourseId"]
+                )
+            )
+        )
 
     return deepcopy(ret)
 
@@ -461,7 +476,7 @@ def jquery_style_callback_parser():
     :return:
     """
     ts = ts_mill()
-    return ("jQuery" + JQUERY_VER + str(random.random()) + "_" + str(ts)).replace(".", ""), ts
+    return ("jQuery" + instance.JQUERY_VER + str(random.random()) + "_" + str(ts)).replace(".", ""), ts
 
 
 async def study_terminate(user_course_id, tenant, captcha_token) -> bool:
@@ -506,11 +521,13 @@ async def captcha_crack(tenant, user_id, user_project_id, user_course_id,
         captcha = await study_fetch_captcha(tenant, user_id, user_project_id, user_course_id)
         captcha_id = captcha.question_id
         count += 1
-        if count > CAPTCHA_CRACK_MAX_ITER:
+        if count > instance.CAPTCHA_CRACK_MAX_ITER:
             dbg_print("Maximum CAPTCHA crack iteration limit exceeded!")
             return ""
-    success, captcha_token = await study_verify_captcha(tenant, user_id, user_project_id,
-                                                        user_course_id, captcha_id, answer)
+    success, captcha_token = await study_verify_captcha(
+        tenant, user_id, user_project_id,
+        user_course_id, captcha_id, answer
+    )
     return captcha_token
 
 
@@ -524,17 +541,19 @@ async def learn_course(tenant, user_id, user_project_id, user_course_id, course_
     # PS: this timeout is necessary. Otherwise, the request would be rejected.
     # Do not remove it in further updates.
     # Try to minimize the waiting time by sending requests continuously until no request would be rejected.
-    await asyncio.sleep(LEARN_TIMEOUT)  # what can I say
+    await asyncio.sleep(instance.LEARN_TIMEOUT)  # what can I say
     print("Fetching CAPTCHA of course", course_name, "with id", course_id, ". Starting coroutine...")
     captcha: json_structs.Captcha = await study_fetch_captcha(tenant, user_id, user_project_id, user_course_id)
     print("Verifying CAPTCHA of course", course_name, "with id", course_id, ". Starting coroutine...")
-    success, captcha_token = await study_verify_captcha(tenant, user_id, user_project_id, user_course_id,
-                                                        captcha.question_id,
-                                                        answer=json_structs.CaptchaAnswer(
-                                                            json_structs.Position(192, 420),
-                                                            json_structs.Position(61, 416),
-                                                            json_structs.Position(120, 425)
-                                                        ))
+    success, captcha_token = await study_verify_captcha(
+        tenant, user_id, user_project_id, user_course_id,
+        captcha.question_id,
+        answer=json_structs.CaptchaAnswer(
+            json_structs.Position(192, 420),
+            json_structs.Position(61, 416),
+            json_structs.Position(120, 425)
+        )
+    )
     # Interestingly there's no need to "crack" the captcha,
     # for that submitting any answer can bypass the CAPTCHA.
 

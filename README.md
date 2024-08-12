@@ -16,7 +16,7 @@
 
 1. clone 此项目
 2. 在项目目录下执行 `pip install -r requirements.txt`
-3. 修改 `config.ini` 中常量为合适值
+3. 修改 `config.ini` 中常量为合适值（一般只需要修改要进行的任务数）
 4. 在项目目录下执行 `python main.py`
 5. 选择模式，若选择了输入账号密码，则会弹出一个显示验证码的 PyTk 窗口，关闭窗口前不要输入内容
 6. 关闭窗口，按照提示继续输入
@@ -25,11 +25,11 @@
 ## TODO
 - [x] 异步获取课程列表
 - [x] 不基于 Python 文件的配置文件
-- [ ] 账号信息存储
+- [x] 账号信息存储
 - [ ] 多账号支持
 - [ ] GUI
 
 ## 致谢
-- 结束学习 API 基于 [pooneyy/weiban-tool](https://github.com/pooneyy/weiban-tool/blob/9922cd34b3b85af89490c65bad924a3c94e3aa7c/Utils.py#L198) 的相关代码
+- 结束学习 API jQuery 字符串格式基于 [pooneyy/weiban-tool](https://github.com/pooneyy/weiban-tool/blob/9922cd34b3b85af89490c65bad924a3c94e3aa7c/Utils.py#L198) 的相关代码
 - 结束学习延时时长数据一部分参考了 [pooneyy/weiban-tool](https://github.com/pooneyy/weiban-tool/)
 - 部分时间戳特殊要求与传递关系受 [Coaixy/weiban-tool](https://github.com/Coaixy/weiban-tool) 启发

@@ -2,3 +2,4 @@
 *.xml
 *.pyc
 *.iml
+/accounts.json
