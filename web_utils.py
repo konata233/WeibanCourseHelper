@@ -13,7 +13,6 @@ from urllib3 import exceptions
 import crypto_helper
 import json_structs
 from config import *
-from json_structs import User
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
@@ -32,7 +31,7 @@ proxies = {
 
 
 def dbg_print(msg: str):
-    if instance.DEBUG:
+    if config_instance.DEBUG:
         now: datetime = datetime.now()
         print(f"[DEBUG] [{now}] {msg}")
 
@@ -123,7 +122,7 @@ def post(url, data: dict, cookies: object = None) -> requests.Response:
         cookies = {}
     resp: requests.Response = requests.post(url, data=data, headers=headers, cookies=cookies,
                                             timeout=5, verify=False, proxies=proxies)
-    if len(t := resp.text) < instance.DEBUG_PRINT_MAX_LEN:
+    if len(t := resp.text) < config_instance.DEBUG_PRINT_MAX_LEN:
         dbg_print("Response: " + t)
     else:
         dbg_print("Response: " + t[0:65536])
@@ -136,7 +135,7 @@ def get(url, cookies=None) -> requests.Response:
         cookies = {}
     resp: requests.Response = requests.get(url, headers=headers, cookies=cookies,
                                            timeout=5, verify=False, proxies=proxies)
-    if len(t := resp.text) < instance.DEBUG_PRINT_MAX_LEN:
+    if len(t := resp.text) < config_instance.DEBUG_PRINT_MAX_LEN:
         dbg_print("Response: " + t)
     else:
         dbg_print("Response: " + t[0:65536])
@@ -187,7 +186,8 @@ def fetch_tenant_conf(tenant_code: str):
     return uname_prompt, pwd_prompt
 
 
-async def login(tenant: str, uname: str, pwd: str, captcha: str, captcha_ts: float) -> (Optional[User], str):
+async def login(tenant: str, uname: str, pwd: str, captcha: str, captcha_ts: float)\
+        -> (Optional[json_structs.User], str):
     captcha_ts = round(captcha_ts * 1000)
     dbg_print(json.dumps(
         {
@@ -476,7 +476,7 @@ def jquery_style_callback_parser():
     :return:
     """
     ts = ts_mill()
-    return ("jQuery" + instance.JQUERY_VER + str(random.random()) + "_" + str(ts)).replace(".", ""), ts
+    return ("jQuery" + config_instance.JQUERY_VER + str(random.random()) + "_" + str(ts)).replace(".", ""), ts
 
 
 async def study_terminate(user_course_id, tenant, captcha_token) -> bool:
@@ -521,7 +521,7 @@ async def captcha_crack(tenant, user_id, user_project_id, user_course_id,
         captcha = await study_fetch_captcha(tenant, user_id, user_project_id, user_course_id)
         captcha_id = captcha.question_id
         count += 1
-        if count > instance.CAPTCHA_CRACK_MAX_ITER:
+        if count > config_instance.CAPTCHA_CRACK_MAX_ITER:
             dbg_print("Maximum CAPTCHA crack iteration limit exceeded!")
             return ""
     success, captcha_token = await study_verify_captcha(
@@ -541,7 +541,7 @@ async def learn_course(tenant, user_id, user_project_id, user_course_id, course_
     # PS: this timeout is necessary. Otherwise, the request would be rejected.
     # Do not remove it in further updates.
     # Try to minimize the waiting time by sending requests continuously until no request would be rejected.
-    await asyncio.sleep(instance.LEARN_TIMEOUT)  # what can I say
+    await asyncio.sleep(config_instance.LEARN_TIMEOUT)  # what can I say
     print("Fetching CAPTCHA of course", course_name, "with id", course_id, ". Starting coroutine...")
     captcha: json_structs.Captcha = await study_fetch_captcha(tenant, user_id, user_project_id, user_course_id)
     print("Verifying CAPTCHA of course", course_name, "with id", course_id, ". Starting coroutine...")

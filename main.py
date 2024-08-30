@@ -16,13 +16,13 @@ from config import *
 
 
 def dbg_print(msg: str):
-    if instance.DEBUG:
+    if config_instance.DEBUG:
         now: datetime = datetime.now()
         print(f"[DEBUG] [{now}] {msg}")
 
 
 async def main():
-    print(instance.MAX_TASK_NUM)
+    print(config_instance.MAX_TASK_NUM)
     session = None
     account_manager: AccountManager = AccountManager().refresh()
 
@@ -134,7 +134,7 @@ async def main():
         task_courses: list = list()
         for c in categories:
             print("Ongoing category:", c.category_name, "ID:", c.category_code)
-            if (not c.finished) or (not instance.IGNORE_FINISHED_TASKS):
+            if (not c.finished) or (not config_instance.IGNORE_FINISHED_TASKS):
                 task_courses.append(
                     asyncio.create_task(
                         web_utils.fetch_course_list(
@@ -162,7 +162,7 @@ async def main():
                 )
 
                 cnt += 1
-                if cnt >= instance.MAX_TASK_NUM:
+                if cnt >= config_instance.MAX_TASK_NUM:
                     break
 
             print("Gathered", total_cnt := len(tasks), "tasks in total. Starting coroutines...")

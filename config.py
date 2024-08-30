@@ -38,4 +38,4 @@ class Conf:
         return self
 
 
-instance: Conf = Conf().parse_conf()
+config_instance: Conf = Conf().parse_conf()
